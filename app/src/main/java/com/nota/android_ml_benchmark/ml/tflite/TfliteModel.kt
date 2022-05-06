@@ -23,9 +23,9 @@ class TfliteModel(
 
     override fun runBenchmarkWOPostProcess(numWarmUp: Int, numInference: Int) : BenchmarkResult{
         val dummyInput = arrayOf(tfliteInterpreter.dummyInput().buffer)
-        val memoryUsed = (totalMemorySize - info.freeMemory()) / 1048576L
 
         for(i in 0 until numWarmUp){
+
             tfliteInterpreter.runForMultipleInputsOutputs(
                 dummyInput,
                 tfliteInterpreter.dummyOutput(*IntArray(tfliteInterpreter.outputTensorCount){ it })
@@ -35,18 +35,21 @@ class TfliteModel(
         val latencies = ArrayList<Long>()
         val cpuTimes = ArrayList<Double>()
         val cpuUsage = ArrayList<Double>()
+        val memoryUsage = ArrayList<Long>()
 
         val (startCpuTime, startProcessTime) = CpuMonitor.startTrace()
 
         for(i in 0 until numInference){
-
+            val memoryStart = (totalMemorySize - info.freeMemory()) / 1048576L
             tfliteInterpreter.runForMultipleInputsOutputs(
                 dummyInput,
                 tfliteInterpreter.dummyOutput(*IntArray(tfliteInterpreter.outputTensorCount){ it })
             )
-
             val latency = tfliteInterpreter.lastNativeInferenceDurationNanoseconds
             latencies.add(latency)
+
+            val memoryEnd = (totalMemorySize - info.freeMemory()) / 1048576L
+            memoryUsage.add(memoryEnd - memoryStart)
         }
 
         val (endCpuTime, endProcessTime) = CpuMonitor.endTrace()
@@ -63,7 +66,7 @@ class TfliteModel(
 
         return BenchmarkResult(
             tag = modelPath,
-            memoryUsed = memoryUsed,
+            memoryUsed = memoryUsage.average(),
             deviceTemperature = floatArrayOf(),
             cpuTimes = cpuTimes.toTypedArray(),
             cpuUsage = cpuUsage.toTypedArray(),
@@ -88,8 +91,11 @@ class TfliteModel(
         val timesElapsed = ArrayList<Long>()
         val cpuTimes = ArrayList<Double>()
         val cpuUsage = ArrayList<Double>()
+        val memoryUsage = ArrayList<Long>()
 
         for(i in 0 until numInference){
+            val memoryStart = (totalMemorySize - info.freeMemory()) / 1048576L
+
             val (startCpuTime, startProcessTime) = CpuMonitor.startTrace()
             val dummyOutput = tfliteInterpreter.dummyOutput(*IntArray(tfliteInterpreter.outputTensorCount){ it })
 
@@ -98,6 +104,11 @@ class TfliteModel(
                 dummyOutput
             )
             postprocess(dummyOutput)
+
+            // FIXME needs to fix memory function
+            val memoryEnd = (totalMemorySize - info.freeMemory()) / 1048576L
+            memoryUsage.add(memoryEnd - memoryStart)
+
 
             val (endCpuTime, endProcessTime) = CpuMonitor.endTrace()
             val cpuTimeDelta = startCpuTime - endCpuTime
@@ -114,7 +125,7 @@ class TfliteModel(
 
         return BenchmarkResult(
             tag = modelPath,
-            memoryUsed = memoryUsed,
+            memoryUsed = memoryUsage.average(),
             deviceTemperature = floatArrayOf(),
             cpuTimes = cpuTimes.toTypedArray(),
             cpuUsage = cpuUsage.toTypedArray(),

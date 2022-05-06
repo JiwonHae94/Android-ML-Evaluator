@@ -11,7 +11,7 @@ data class BenchmarkResult(
     val tag : String,
     val numProcessors: Long = Os.sysconf(OsConstants._SC_NPROCESSORS_CONF),
     val clockSpeed: Long = Os.sysconf(OsConstants._SC_CLK_TCK),
-    val memoryUsed: Long,
+    val memoryUsed: Double,
     val isGpuAvailable : Boolean,
     val deviceTemperature: FloatArray,
     val cpuTimes: Array<Double>,
@@ -31,7 +31,7 @@ data class BenchmarkResult(
             .append("cpu usage max      : ${"%.3f".format(cpuUsage.maxOrNull())}%\n")
             .append("cpu usage min      : ${"%.3f".format(cpuUsage.minOrNull())}%\n")
             .append("cpu usage average  : ${"%.3f".format(cpuUsage.average())}%\n")
-            .append("gpu availability   : ${isGpuAvailable}")
+            .append("gpu availability   : ${isGpuAvailable}\n")
             .append("memory used        : $memoryUsed mb\n")
             .append("minTimeElapsed     : $minTimeElapsed ms\n")
             .append("maxTimeElasped     : $maxTimeElasped ms\n")
